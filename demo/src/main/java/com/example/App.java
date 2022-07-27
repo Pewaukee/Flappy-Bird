@@ -41,7 +41,7 @@ public class App extends Application {
     public void start(Stage stage) throws IOException {
         group = new Group();
         archGroup = new Group();
-
+        altPane = new Pane();
 
         startButton = new Button("Start Game!");
 
@@ -52,10 +52,7 @@ public class App extends Application {
         GridPane.setValignment(startButton, VPos.CENTER);
 
         mainPane.getChildren().addAll(group, startButton);
-        setBackground();
-
-        //mainPane = new Pane(stackPane);
-
+        mainPane.getChildren().add(altPane);
 
         scene = new Scene(mainPane, 1280, 720);
         stage.setScene(scene);
@@ -63,6 +60,8 @@ public class App extends Application {
         stage.setResizable(false);
         stage.show();
 
+        
+        setBackground();
         startGame();
     }
 
