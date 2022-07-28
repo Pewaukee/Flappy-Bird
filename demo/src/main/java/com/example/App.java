@@ -1,48 +1,44 @@
 package com.example;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Random;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Bounds;
+import javafx.geometry.HPos;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import javafx.geometry.HPos;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.geometry.Bounds;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-
-import java.util.Random;
-import java.util.function.DoubleBinaryOperator;
 
 
 /**
  * JavaFX App
  */
-public class App extends Application implements PhysicsInterface{
+public class App extends Application implements PhysicsInterface {
 
     private static Scene scene;
     private static Group group;
@@ -52,18 +48,18 @@ public class App extends Application implements PhysicsInterface{
     private static GridPane mainPane; // for the centered objects
     private static Pane altPane; // for non-centered objects
     private static Label score; // for keeping score
-    private static boolean started = false;
+    private static boolean started = false; // see if the game started
     private static Button startButton;
     private static Timeline timeline;
     private static final double MOVEMENT_SPEED = -1.25; // movement speed for rectangles
     private static final int GAP = 200; // for distance between the arches
-    private static final int DISTANCE_BEWTEEN_ARCHES = 400; // for creating a new arch
+    private static final int DISTANCE_BEWTEEN_ARCHES = 500; // for creating a new arch
     private static final int DISTANCE_UNTIL_BOTTOM = 50; // account for the ground
     private static final Random random = new Random();
     private static Label bird; // this way can set image to label and move it
     private static double velocity; // keep track of the velocity of the bird
     private static double curTime; // keep track of time before screen clicked
-    private static final double START_VELOCITY = 1;
+    private static final double START_VELOCITY = 1.25;
     private static final int WIDTH = 95; // to account for stroke of 5 to get a total width of 100
     private static final int BIRD_X_POSITION = 200; // set initial coords
     private static final int BIRD_Y_POSITION = 300; // of the bird
@@ -84,7 +80,6 @@ public class App extends Application implements PhysicsInterface{
         startButton.setTranslateY(300);
         altPane.getChildren().add(startButton);
 
-
         mainPane = new GridPane();
         mainPane.setAlignment(Pos.CENTER);
         // Center the start button
@@ -95,13 +90,14 @@ public class App extends Application implements PhysicsInterface{
         mainPane.getChildren().addAll(group);
         mainPane.getChildren().add(altPane);
 
-        
-        
-        score = new Label("Score: 0");
-        score.setTranslateX(525);
+        score = new Label("0");
+        score.setTranslateX(625);
         score.setTranslateY(30);
-        //score.setFont(Font.loadFont("file:resources/fonts/FFFFORWA.TTF", 16));
-        score.setFont(Font.font("Verdana", 50));
+        String path = "demo/src/main/resources/fonts/FFFFORWA.TTF";
+        // font code from: https://stackoverflow.com/questions/12173288/specifying-external-font-in-javafx-css/12181948#12181948
+        // answer by user RichardK
+        Font font = Font.loadFont(new FileInputStream(new File(path)), 60);
+        score.setFont(font);
         scoreGroup.getChildren().add(score);
 
         scene = new Scene(mainPane, 1280, 720);
@@ -119,6 +115,9 @@ public class App extends Application implements PhysicsInterface{
         startButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                archGroup.getChildren().clear(); // first clear arch group from previous game
+                birdGroup.getChildren().clear(); // clear from previous game
+                score.setText("0"); // reset score from previous game
                 startButton.setOpacity(0.0); // make button invisible
                 startButton.setDisable(true);
                 started = true; // if started is true, then the arches can start moving
@@ -162,11 +161,16 @@ public class App extends Application implements PhysicsInterface{
          * using a substring and finding 
          * Integer.valueOf
          */
-        int curScore = Integer.valueOf(score.getText().substring(7));
-        score.setText(String.format("Score: %d", ++curScore));
+        int curScore = Integer.valueOf(score.getText());
+        score.setText(String.format("%d", ++curScore));
     }
 
     private void updateBirdPosition() {
+        /*purpose
+         * update by bird's y position
+         * by translating with the current velocty
+         * found through the finalVelocity method
+         */
         double curVelocity = finalVelocity(velocity, curTime);
         velocity = curVelocity;
         setRotate(curVelocity); // if object is rising up, rotate back, else rotate forward
@@ -235,11 +239,17 @@ public class App extends Application implements PhysicsInterface{
     }
 
     private void gameOver() {
-        started = false; // paause all movement
+        started = false; // pause all movement
         timeline.stop(); // pause unneccessary code running
         System.out.println("GAME OVER");
         System.out.println(String.format("Score: %d", 
-            Integer.valueOf(score.getText().substring(7))));
+            Integer.valueOf(score.getText())));
+        
+        //reactivate the start button to play again
+        startButton.setDisable(false);
+        startButton.setOpacity(1);
+        startGame();
+        
 
     }
 
@@ -317,11 +327,6 @@ public class App extends Application implements PhysicsInterface{
     public double finalVelocity(double velocity, double time) {
         return velocity + acceleration * time;
     }
-
-    //@Override
-    //public double finalPosition(double position, double velocity, double time) {
-        //return position + velocity * time + 0.5 * acceleration * Math.pow(time, 2);
-    //}
 
     private void drawRectangle(int x, int y, int width, int height) {
         /*purpose
