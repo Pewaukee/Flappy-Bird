@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.util.Random;
 import java.util.function.DoubleBinaryOperator;
 
+
 /**
  * JavaFX App
  */
@@ -63,11 +64,12 @@ public class App extends Application implements PhysicsInterface{
     private static double velocity; // keep track of the velocity of the bird
     private static double curTime; // keep track of time before screen clicked
     private static final double START_VELOCITY = 1;
-    private static final int WIDTH = 100;
+    private static final int WIDTH = 95; // to account for stroke of 5 to get a total width of 100
     private static final int BIRD_X_POSITION = 200; // set initial coords
     private static final int BIRD_Y_POSITION = 300; // of the bird
-    private static final int SIZE_OF_BIRD = 50;
+    private static final int SIZE_OF_BIRD = 60;
     private static final int TIME_INTERVAL = 5; // in milliseconds
+    private static Timeline timeline1;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -165,11 +167,11 @@ public class App extends Application implements PhysicsInterface{
     }
 
     private void updateBirdPosition() {
-        checkLoseConditions();
         double curVelocity = finalVelocity(velocity, curTime);
         velocity = curVelocity;
         setRotate(curVelocity); // if object is rising up, rotate back, else rotate forward
         bird.setTranslateY(bird.getTranslateY() - curVelocity);
+        checkLoseConditions();
     }
 
     private void checkLoseConditions() {
@@ -198,9 +200,10 @@ public class App extends Application implements PhysicsInterface{
                 midpoint < 200) {
                 updateScore();
             }
-            if (rectBounds.getMaxX() >= BIRD_X_POSITION) {
-                
-                if (bounds.intersects(rectBounds)) {System.out.println(String.format("%f", rectBounds.getMaxX()));gameOver();}
+            // if rectangle could even hit the bird and the bird bounds intersects the rectangles
+            if (rectBounds.getMaxX() >= BIRD_X_POSITION && bounds.intersects(rectBounds)) {
+                moveBirdToDeath(bounds, rectBounds);
+                gameOver();
             }
             if (rectBounds.getMaxX() == 0) {
                 archGroup.getChildren().remove(arch); // use while loop to delete mid loop
@@ -209,10 +212,34 @@ public class App extends Application implements PhysicsInterface{
         }
     }
 
+    private void moveBirdToDeath(Bounds b1, Bounds b2) {
+        /*purpose
+         * if the bird hits an object, we want to make it
+         * fall to the ground below
+         */
+        
+        // move the bird down 1/100 of its distance to the ground to take 1s in total
+        double velocity = (720 - DISTANCE_UNTIL_BOTTOM - bird.getTranslateY() - 
+            bird.getBoundsInParent().getHeight())/100;
+
+        timeline1 = new Timeline(
+            new KeyFrame(Duration.millis(10), 
+            new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    bird.setTranslateY(bird.getTranslateY() + velocity);
+                }
+            }));
+        timeline1.setCycleCount(100); // how many times to run handle(), 100 with 10ms interval for 1s
+        timeline1.play(); 
+    }
+
     private void gameOver() {
         started = false; // paause all movement
         timeline.stop(); // pause unneccessary code running
         System.out.println("GAME OVER");
+        System.out.println(String.format("Score: %d", 
+            Integer.valueOf(score.getText().substring(7))));
 
     }
 
@@ -308,9 +335,8 @@ public class App extends Application implements PhysicsInterface{
         r.setHeight(height);
         r.setWidth(width);
         r.setFill(Color.rgb(72, 201, 5)); // semi light green
-        //TODO stroke messing with things?
-        //r.setStroke(Color.BLACK);
-        //r.setStrokeWidth(5.0);
+        r.setStroke(Color.BLACK);
+        r.setStrokeWidth(5.0);
         archGroup.getChildren().add(r);
     }
 
